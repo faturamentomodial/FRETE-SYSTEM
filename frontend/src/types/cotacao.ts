@@ -47,3 +47,44 @@ export interface CotacaoOut {
   melhor_opcao_id: string | null;
   resultados: ResultadoTransportadora[];
 }
+
+export interface CotacaoListItem {
+  id: string;
+  status: StatusCotacao;
+  origem_cep: string;
+  origem_cidade: string;
+  origem_uf: string;
+  destino_cep: string;
+  destino_cidade: string;
+  destino_uf: string;
+  valor_nf: number;
+  peso: number;
+  cubagem_m3: number;
+  melhor_frete: number | null;
+  transportadora_id: string | null;
+  transportadora: string | null;
+  prazo_dias: number | null;
+  total_resultados: number;
+  resultados_sucesso: number;
+  created_at: string;
+}
+
+export interface CotacaoFiltros {
+  page: number;
+  page_size: number;
+  status?: string;
+  origem_uf?: string;
+  destino_uf?: string;
+  transportadora_id?: string;
+  data_inicio?: string;
+  data_fim?: string;
+  busca?: string;
+}
+
+export interface CotacaoListaResponse {
+  items: CotacaoListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

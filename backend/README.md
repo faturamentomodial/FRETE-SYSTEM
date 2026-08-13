@@ -1,4 +1,4 @@
-# frete-system — backend (Sprint 1)
+# FreteWay — backend
 
 FastAPI + PostgreSQL + Docker, seguindo o contrato de API consumido pelo
 protótipo de frontend (`frete-system-prototype.jsx`).

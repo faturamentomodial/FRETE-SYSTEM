@@ -13,9 +13,8 @@ export function NovaCotacao() {
   const { criar, isCriando, cotacao, isCarregando, selecionar } = useCotacao();
 
   const [origem, setOrigem] = useState({ cep: "07000-000", cidade: "Guarulhos", uf: "SP" });
-  const [destino, setDestino] = useState({ cep: "80000-000", cidade: "Curitiba", uf: "PR" });
+  const [destino, setDestino] = useState({ cep: "80000-001", cidade: "Curitiba", uf: "PR" });
   const [valorNf, setValorNf] = useState("5800");
-  const [peso, setPeso] = useState("120");
   const [volumes, setVolumes] = useState<(VolumeIn & { id: number })[]>([
     { id: nextVolumeId++, quantidade: 2, comprimento_cm: 50, largura_cm: 40, altura_cm: 30, peso_kg: 20 },
   ]);
@@ -23,6 +22,10 @@ export function NovaCotacao() {
 
   const cubagem = useMemo(
     () => volumes.reduce((acc, v) => acc + (v.comprimento_cm * v.largura_cm * v.altura_cm * v.quantidade) / 1_000_000, 0),
+    [volumes]
+  );
+  const pesoTotal = useMemo(
+    () => volumes.reduce((acc, v) => acc + v.peso_kg * v.quantidade, 0),
     [volumes]
   );
 
@@ -41,7 +44,7 @@ export function NovaCotacao() {
       origem,
       destino,
       valor_nf: Number(valorNf),
-      peso: Number(peso),
+      peso: pesoTotal,
       volumes: volumes.map(({ id: _id, ...rest }) => rest),
       transportadoras_ids: selecionadas.length > 0 ? selecionadas : null,
     });
@@ -79,7 +82,11 @@ export function NovaCotacao() {
         <p className="text-sm font-medium mb-3">Dados da NF</p>
         <div className="grid sm:grid-cols-3 gap-3">
           <Field label="Valor NF (R$)"><Input type="number" value={valorNf} onChange={(e) => setValorNf(e.target.value)} /></Field>
-          <Field label="Peso total (kg)"><Input type="number" value={peso} onChange={(e) => setPeso(e.target.value)} /></Field>
+          <Field label="Peso total calculado">
+            <div className="h-9 rounded px-3 text-sm flex items-center bg-surface2 border border-border text-text-secondary">
+              {pesoTotal.toFixed(2)} kg
+            </div>
+          </Field>
           <Field label="Cubagem calculada">
             <div className="h-9 rounded px-3 text-sm flex items-center bg-surface2 border border-border text-text-secondary">
               {cubagem.toFixed(3)} m³
@@ -102,7 +109,7 @@ export function NovaCotacao() {
               <Field label="C (cm)"><Input type="number" value={v.comprimento_cm} onChange={(e) => updateVolume(v.id, "comprimento_cm", e.target.value)} /></Field>
               <Field label="L (cm)"><Input type="number" value={v.largura_cm} onChange={(e) => updateVolume(v.id, "largura_cm", e.target.value)} /></Field>
               <Field label="A (cm)"><Input type="number" value={v.altura_cm} onChange={(e) => updateVolume(v.id, "altura_cm", e.target.value)} /></Field>
-              <Field label="Peso (kg)"><Input type="number" value={v.peso_kg} onChange={(e) => updateVolume(v.id, "peso_kg", e.target.value)} /></Field>
+              <Field label="Peso unit. (kg)"><Input type="number" value={v.peso_kg} onChange={(e) => updateVolume(v.id, "peso_kg", e.target.value)} /></Field>
               <button
                 onClick={() => setVolumes((all) => all.filter((x) => x.id !== v.id))}
                 disabled={volumes.length === 1}
@@ -118,7 +125,7 @@ export function NovaCotacao() {
       <Card>
         <p className="text-sm font-medium mb-3">Transportadoras</p>
         <div className="grid sm:grid-cols-2 gap-2 text-sm">
-          {(transportadoras ?? []).map((t) => (
+          {(transportadoras ?? []).filter((t) => t.ativa).map((t) => (
             <label key={t.id} className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={selecionadas.includes(t.id)} onChange={() => toggle(t.id)} />
               {t.nome} <span className="text-xs text-text-secondary">({t.tipo_integracao})</span>

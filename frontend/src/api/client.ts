@@ -20,7 +20,7 @@ apiClient.interceptors.request.use((config) => {
 // 500 e indisponibilidade viram mensagens amigáveis, nunca stack traces.
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ error?: { code: string; message: string } }>) => {
+  (error: AxiosError<{ detail?: string; error?: { code: string; message: string } }>) => {
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
       window.location.href = "/login";
@@ -32,6 +32,6 @@ apiClient.interceptors.response.use(
     }
 
     const apiError = error.response.data?.error;
-    return Promise.reject(new Error(apiError?.message || "Ocorreu um erro inesperado."));
+    return Promise.reject(new Error(apiError?.message || error.response.data?.detail || "Ocorreu um erro inesperado."));
   }
 );

@@ -38,6 +38,7 @@ services:
       - "5173:5173"
     environment:
       VITE_API_URL: http://localhost:8000/api/v1
+    command: sh -c "npm install --prefer-offline && npm run dev -- --host"
     volumes:
       - ./frontend:/app
       - /app/node_modules

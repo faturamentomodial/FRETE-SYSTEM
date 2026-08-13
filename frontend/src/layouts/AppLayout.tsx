@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { apiClient } from "../api/client";
+import { Brand } from "../components/Brand";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -52,10 +53,7 @@ export function AppLayout() {
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="h-14 flex items-center gap-2 px-4 border-b border-border">
-          <div className="w-7 h-7 rounded flex items-center justify-center text-sm font-semibold bg-state-info text-bg">F</div>
-          <span className="font-semibold text-sm">frete-system</span>
-        </div>
+        <div className="flex h-14 items-center px-4 border-b border-border"><Brand /></div>
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {NAV_ITEMS.map((item) => (
             <NavLink

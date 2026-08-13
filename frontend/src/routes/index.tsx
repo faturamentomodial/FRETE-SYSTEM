@@ -2,8 +2,10 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppLayout } from "../layouts/AppLayout";
 import { Cotacoes } from "../pages/Cotacoes/Cotacoes";
+import { Configuracoes } from "../pages/Configuracoes/Configuracoes";
 import { Dashboard } from "../pages/Dashboard/Dashboard";
 import { Login } from "../pages/Login/Login";
+import { Integracoes } from "../pages/Integracoes/Integracoes";
 import { NovaCotacao } from "../pages/NovaCotacao/NovaCotacao";
 import { Transportadoras } from "../pages/Transportadoras/Transportadoras";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -25,6 +27,8 @@ export function AppRoutes() {
         <Route path="/cotacoes/nova" element={<NovaCotacao />} />
         <Route path="/historico" element={<Cotacoes />} />
         <Route path="/transportadoras" element={<Transportadoras />} />
+        <Route path="/integracoes" element={<Integracoes />} />
+        <Route path="/configuracoes" element={<Configuracoes />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

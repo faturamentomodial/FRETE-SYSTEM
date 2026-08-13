@@ -1,7 +1,15 @@
 import { apiClient } from "../api/client";
-import type { CotacaoCreate, CotacaoOut } from "../types/cotacao";
+import type { CotacaoCreate, CotacaoFiltros, CotacaoListaResponse, CotacaoOut } from "../types/cotacao";
 
 export const cotacaoService = {
+  async listar(filtros: CotacaoFiltros): Promise<CotacaoListaResponse> {
+    const params = Object.fromEntries(
+      Object.entries(filtros).filter(([, valor]) => valor !== "" && valor != null)
+    );
+    const { data } = await apiClient.get<CotacaoListaResponse>("/cotacoes", { params });
+    return data;
+  },
+
   async criar(payload: CotacaoCreate): Promise<CotacaoOut> {
     const { data } = await apiClient.post<CotacaoOut>("/cotacoes", payload);
     return data;

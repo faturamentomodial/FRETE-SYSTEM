@@ -1,4 +1,4 @@
-# frete-system
+# FreteWay
 
 Plataforma de cotação de fretes: React + TypeScript + Vite (frontend) e
 FastAPI + PostgreSQL (backend), conectados pelo contrato de API descrito

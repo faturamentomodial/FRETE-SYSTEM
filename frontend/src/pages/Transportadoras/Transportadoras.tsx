@@ -1,8 +1,20 @@
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import { Badge, Card } from "../../components/ui";
 import { useTransportadoras } from "../../hooks/useTransportadoras";
+import { TabelasFreteManager } from "./TabelasFreteManager";
 
 export function Transportadoras() {
   const { data, isLoading, isError } = useTransportadoras();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selecionada, setSelecionada] = useState<{ id: string; nome: string } | null>(null);
+
+  useEffect(() => {
+    const id = searchParams.get("transportadora");
+    const transportadora = data?.find((item) => item.id === id);
+    if (transportadora) setSelecionada({ id: transportadora.id, nome: transportadora.nome });
+  }, [data, searchParams]);
 
   return (
     <div className="space-y-4">
@@ -25,9 +37,24 @@ export function Transportadoras() {
                 <p>Sucesso: {t.taxa_sucesso}%</p>
                 <p>Tempo médio: {t.tempo_medio_ms} ms</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setSelecionada({ id: t.id, nome: t.nome })}
+                className="mt-3 h-8 rounded border border-border px-3 text-xs hover:bg-surface2"
+              >
+                Gerenciar tabelas
+              </button>
             </Card>
           ))}
         </div>
+      )}
+
+      {selecionada && (
+        <TabelasFreteManager
+          transportadoraId={selecionada.id}
+          transportadoraNome={selecionada.nome}
+          onClose={() => { setSelecionada(null); setSearchParams({}); }}
+        />
       )}
     </div>
   );

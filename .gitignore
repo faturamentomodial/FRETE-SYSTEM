@@ -37,12 +37,14 @@ env/
 # Backend artifacts
 backend/__pycache__/
 backend/*.py[cod]
+backend/storage/
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
 frontend/build/
 frontend/.vite/
+frontend/*.tsbuildinfo
 frontend/coverage/
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
