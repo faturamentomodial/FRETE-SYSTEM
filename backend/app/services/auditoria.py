@@ -16,8 +16,9 @@ async def registrar_auditoria(
     anteriores: dict[str, Any] | None = None,
     novos: dict[str, Any] | None = None,
 ) -> None:
-    encaminhado = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    ip = encaminhado or (request.client.host if request.client else None)
+    # O cabeçalho X-Forwarded-For é controlável pelo cliente. O proxy deve
+    # sobrescrevê-lo e o endereço confiável pode ser tratado na infraestrutura.
+    ip = request.client.host if request.client else None
     db.add(AuditLog(
         user_id=usuario.id,
         acao=acao,

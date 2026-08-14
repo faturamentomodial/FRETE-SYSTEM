@@ -4,10 +4,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: frete
-      POSTGRES_PASSWORD: frete
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
       POSTGRES_DB: frete
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,9 +24,11 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://frete:frete@postgres:5432/frete
+      DATABASE_URL: postgresql+asyncpg://frete:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}@postgres:5432/frete
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - ./backend:/app
     depends_on:
@@ -35,7 +39,9 @@ services:
     build: ./frontend
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
+    security_opt:
+      - no-new-privileges:true
     environment:
       VITE_API_URL: http://localhost:8000/api/v1
     command: sh -c "npm install --prefer-offline && npm run dev -- --host"

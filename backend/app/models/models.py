@@ -39,6 +39,7 @@ class User(Base):
     ativa: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     two_factor_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     two_factor_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    session_version: Mapped[int] = mapped_column(Integer, default=0)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -170,6 +171,26 @@ class TransportadoraConfiguracaoApi(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     transportadora: Mapped[Transportadora] = relationship(back_populates="configuracao_api")
+
+
+class SankhyaTransportadoraMapeamento(Base):
+    """De-para entre a transportadora do FRETEWAY e o parceiro no Sankhya."""
+
+    __tablename__ = "sankhya_transportadoras_mapeamentos"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    transportadora_id: Mapped[str] = mapped_column(
+        ForeignKey("transportadoras.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    codigo_parceiro: Mapped[int] = mapped_column(Integer, unique=True, index=True)
+    nome_parceiro: Mapped[str] = mapped_column(String(255))
+    codigo_servico: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    servico: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    transportadora: Mapped[Transportadora] = relationship()
 
 
 class Cotacao(Base):

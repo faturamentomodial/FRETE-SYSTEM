@@ -209,14 +209,14 @@ def analisar_documento_local(documento: DocumentoFrete, tabela: TabelaFrete, sto
             dados = extrair_uf_zona_excel(caminho)
             return {
                 "dados_extraidos": dados,
-                "confianca_extracao": 0.92,
+                "confianca_extracao": 0.98,
                 "erros_validacao": [],
                 "avisos": [
                     "Tarifas e taxas extraídas automaticamente.",
-                    "A tabela ainda não pode calcular fretes até receber o mapa das zonas e os prazos de entrega.",
+                    "Malha de cidades/CEPs e prazos extraída automaticamente quando presente.",
                     "O prazo de 7 dias do documento pertence à armazenagem, não ao prazo de entrega.",
                 ],
-                "campos_com_duvida": ["mapeamento_zonas", "prazos_entrega", "icms", "taxas_externas"],
+                "campos_com_duvida": ["icms"],
                 "resumo": dados["estatisticas"],
             }
         except AnaliseDocumentoError:

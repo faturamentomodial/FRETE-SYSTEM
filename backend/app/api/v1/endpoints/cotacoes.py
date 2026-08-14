@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, s
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import require_permission
 from app.db.session import AsyncSessionLocal, get_db
 from app.models.models import Cotacao, CotacaoResultado, CotacaoVolume, Transportadora
 from app.schemas.cotacao import (
@@ -57,7 +57,7 @@ async def criar_cotacao(
     payload: CotacaoCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("cotacoes.manage")),
 ):
     cubagem = calcular_cubagem_m3(payload.volumes)  # backend é a fonte oficial, nunca confia no frontend
 
@@ -108,7 +108,7 @@ async def listar_cotacoes(
     data_fim: date | None = Query(None),
     busca: str | None = Query(None, max_length=120),
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("cotacoes.view")),
 ):
     """Lista o historico com filtros executados no banco e paginacao."""
     filtros = []
@@ -185,7 +185,7 @@ async def listar_cotacoes(
 async def obter_cotacao(
     cotacao_id: str,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("cotacoes.view")),
 ):
     cotacao = await db.get(Cotacao, cotacao_id)
     if not cotacao:
@@ -227,7 +227,7 @@ async def selecionar_transportadora(
     cotacao_id: str,
     payload: SelecionarTransportadora,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("cotacoes.manage")),
 ):
     cotacao = await db.get(Cotacao, cotacao_id)
     if not cotacao:

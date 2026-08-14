@@ -1,12 +1,13 @@
 """Adapter configurável para APIs REST de transportadoras."""
 
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
 
 from app.integrations.transportadoras.base import ResultadoCotacao, TransportadoraAdapter
 from app.models.models import TransportadoraConfiguracaoApi
 from app.services.credenciais import descriptografar
+from app.core.url_security import UnsafeUrlError, validate_external_url
 
 
 def _campo(dados: object, caminho: str) -> object:
@@ -31,9 +32,10 @@ class ApiGenericaAdapter(TransportadoraAdapter):
         if not self.configuracao.ativa:
             return ResultadoCotacao(status="error", erro_codigo="API_INATIVA", erro_mensagem="Configuração de API inativa")
         url = urljoin(f"{self.configuracao.base_url.rstrip('/')}/", self.configuracao.endpoint_cotacao.lstrip("/"))
-        host = (urlparse(url).hostname or "").lower()
-        if urlparse(url).scheme != "https" and host not in {"localhost", "127.0.0.1", "host.docker.internal"}:
-            return ResultadoCotacao(status="error", erro_codigo="API_URL_INSEGURA", erro_mensagem="A API deve usar HTTPS")
+        try:
+            validate_external_url(url)
+        except UnsafeUrlError as exc:
+            return ResultadoCotacao(status="error", erro_codigo="API_URL_INSEGURA", erro_mensagem=str(exc))
 
         headers = {"Accept": "application/json"}
         auth = None

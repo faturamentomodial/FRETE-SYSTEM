@@ -9,7 +9,9 @@ from app.core.config import get_settings
 
 
 def _fernet() -> Fernet:
-    chave = hashlib.sha256(get_settings().JWT_SECRET.encode("utf-8")).digest()
+    settings = get_settings()
+    segredo = settings.CREDENTIAL_ENCRYPTION_KEY or settings.JWT_SECRET
+    chave = hashlib.sha256(segredo.encode("utf-8")).digest()
     return Fernet(base64.urlsafe_b64encode(chave))
 
 

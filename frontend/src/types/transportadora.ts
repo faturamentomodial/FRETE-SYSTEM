@@ -65,3 +65,15 @@ export interface ConfiguracaoApiInput {
   campo_prazo: string;
   ativa: boolean;
 }
+
+export interface MapeamentoSankhya {
+  id: string;
+  transportadora_id: string;
+  codigo_parceiro: number;
+  nome_parceiro: string;
+  codigo_servico: string | null;
+  servico: string | null;
+  ativo: boolean;
+}
+
+export type MapeamentoSankhyaInput = Omit<MapeamentoSankhya, "id">;

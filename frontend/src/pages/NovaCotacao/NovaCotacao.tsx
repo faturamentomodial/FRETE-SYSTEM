@@ -8,32 +8,37 @@ import type { VolumeIn } from "../../types/cotacao";
 
 let nextVolumeId = 1;
 
+type VolumeForm = { id: number } & Record<keyof VolumeIn, string>;
+
+const volumeVazio = (): VolumeForm => ({
+  id: nextVolumeId++, quantidade: "", comprimento_cm: "", largura_cm: "", altura_cm: "", peso_kg: "",
+});
+
 export function NovaCotacao() {
   const { data: transportadoras } = useTransportadoras();
   const { criar, isCriando, cotacao, isCarregando, selecionar } = useCotacao();
 
-  const [origem, setOrigem] = useState({ cep: "07000-000", cidade: "Guarulhos", uf: "SP" });
-  const [destino, setDestino] = useState({ cep: "80000-001", cidade: "Curitiba", uf: "PR" });
-  const [valorNf, setValorNf] = useState("5800");
-  const [volumes, setVolumes] = useState<(VolumeIn & { id: number })[]>([
-    { id: nextVolumeId++, quantidade: 2, comprimento_cm: 50, largura_cm: 40, altura_cm: 30, peso_kg: 20 },
-  ]);
+  const [origem, setOrigem] = useState({ cep: "", cidade: "", uf: "" });
+  const [destino, setDestino] = useState({ cep: "", cidade: "", uf: "" });
+  const [valorNf, setValorNf] = useState("");
+  const [volumes, setVolumes] = useState<VolumeForm[]>([volumeVazio()]);
   const [selecionadas, setSelecionadas] = useState<string[]>([]);
 
   const cubagem = useMemo(
-    () => volumes.reduce((acc, v) => acc + (v.comprimento_cm * v.largura_cm * v.altura_cm * v.quantidade) / 1_000_000, 0),
+    () => volumes.reduce((acc, v) => acc + (Number(v.comprimento_cm) * Number(v.largura_cm) * Number(v.altura_cm) * Number(v.quantidade)) / 1_000_000, 0),
     [volumes]
   );
   const pesoTotal = useMemo(
-    () => volumes.reduce((acc, v) => acc + v.peso_kg * v.quantidade, 0),
+    () => volumes.reduce((acc, v) => acc + Number(v.peso_kg) * Number(v.quantidade), 0),
     [volumes]
   );
+  const possuiDadosVolume = volumes.some((v) => Object.values(v).some((valor) => valor !== "" && typeof valor === "string"));
 
   function addVolume() {
-    setVolumes((v) => [...v, { id: nextVolumeId++, quantidade: 1, comprimento_cm: 30, largura_cm: 30, altura_cm: 30, peso_kg: 5 }]);
+    setVolumes((v) => [...v, volumeVazio()]);
   }
   function updateVolume(id: number, field: keyof VolumeIn, value: string) {
-    setVolumes((v) => v.map((x) => (x.id === id ? { ...x, [field]: Number(value) || 0 } : x)));
+    setVolumes((v) => v.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
   }
   function toggle(id: string) {
     setSelecionadas((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -45,7 +50,10 @@ export function NovaCotacao() {
       destino,
       valor_nf: Number(valorNf),
       peso: pesoTotal,
-      volumes: volumes.map(({ id: _id, ...rest }) => rest),
+      volumes: volumes.map(({ id: _id, ...rest }) => ({
+        quantidade: Number(rest.quantidade), comprimento_cm: Number(rest.comprimento_cm),
+        largura_cm: Number(rest.largura_cm), altura_cm: Number(rest.altura_cm), peso_kg: Number(rest.peso_kg),
+      })),
       transportadoras_ids: selecionadas.length > 0 ? selecionadas : null,
     });
   }
@@ -62,17 +70,17 @@ export function NovaCotacao() {
         <p className="text-sm font-medium mb-3">Origem e destino</p>
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Field label="CEP origem"><Input value={origem.cep} onChange={(e) => setOrigem({ ...origem, cep: e.target.value })} /></Field>
+            <Field label="CEP origem"><Input autoComplete="off" value={origem.cep} onChange={(e) => setOrigem({ ...origem, cep: e.target.value })} /></Field>
             <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2"><Field label="Cidade"><Input value={origem.cidade} onChange={(e) => setOrigem({ ...origem, cidade: e.target.value })} /></Field></div>
-              <Field label="UF"><Input value={origem.uf} onChange={(e) => setOrigem({ ...origem, uf: e.target.value })} /></Field>
+              <div className="col-span-2"><Field label="Cidade"><Input autoComplete="off" value={origem.cidade} onChange={(e) => setOrigem({ ...origem, cidade: e.target.value })} /></Field></div>
+              <Field label="UF"><Input autoComplete="off" value={origem.uf} onChange={(e) => setOrigem({ ...origem, uf: e.target.value })} /></Field>
             </div>
           </div>
           <div className="space-y-2">
-            <Field label="CEP destino"><Input value={destino.cep} onChange={(e) => setDestino({ ...destino, cep: e.target.value })} /></Field>
+            <Field label="CEP destino"><Input autoComplete="off" value={destino.cep} onChange={(e) => setDestino({ ...destino, cep: e.target.value })} /></Field>
             <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2"><Field label="Cidade"><Input value={destino.cidade} onChange={(e) => setDestino({ ...destino, cidade: e.target.value })} /></Field></div>
-              <Field label="UF"><Input value={destino.uf} onChange={(e) => setDestino({ ...destino, uf: e.target.value })} /></Field>
+              <div className="col-span-2"><Field label="Cidade"><Input autoComplete="off" value={destino.cidade} onChange={(e) => setDestino({ ...destino, cidade: e.target.value })} /></Field></div>
+              <Field label="UF"><Input autoComplete="off" value={destino.uf} onChange={(e) => setDestino({ ...destino, uf: e.target.value })} /></Field>
             </div>
           </div>
         </div>
@@ -81,15 +89,15 @@ export function NovaCotacao() {
       <Card>
         <p className="text-sm font-medium mb-3">Dados da NF</p>
         <div className="grid sm:grid-cols-3 gap-3">
-          <Field label="Valor NF (R$)"><Input type="number" value={valorNf} onChange={(e) => setValorNf(e.target.value)} /></Field>
+          <Field label="Valor NF (R$)"><Input autoComplete="off" type="number" value={valorNf} onChange={(e) => setValorNf(e.target.value)} /></Field>
           <Field label="Peso total calculado">
             <div className="h-9 rounded px-3 text-sm flex items-center bg-surface2 border border-border text-text-secondary">
-              {pesoTotal.toFixed(2)} kg
+              {possuiDadosVolume ? `${pesoTotal.toFixed(2)} kg` : "—"}
             </div>
           </Field>
           <Field label="Cubagem calculada">
             <div className="h-9 rounded px-3 text-sm flex items-center bg-surface2 border border-border text-text-secondary">
-              {cubagem.toFixed(3)} m³
+              {possuiDadosVolume ? `${cubagem.toFixed(3)} m³` : "—"}
             </div>
           </Field>
         </div>
@@ -104,16 +112,17 @@ export function NovaCotacao() {
         </div>
         <div className="space-y-2">
           {volumes.map((v) => (
-            <div key={v.id} className="grid items-end gap-2" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr 32px" }}>
-              <Field label="Qtd"><Input type="number" value={v.quantidade} onChange={(e) => updateVolume(v.id, "quantidade", e.target.value)} /></Field>
-              <Field label="C (cm)"><Input type="number" value={v.comprimento_cm} onChange={(e) => updateVolume(v.id, "comprimento_cm", e.target.value)} /></Field>
-              <Field label="L (cm)"><Input type="number" value={v.largura_cm} onChange={(e) => updateVolume(v.id, "largura_cm", e.target.value)} /></Field>
-              <Field label="A (cm)"><Input type="number" value={v.altura_cm} onChange={(e) => updateVolume(v.id, "altura_cm", e.target.value)} /></Field>
-              <Field label="Peso unit. (kg)"><Input type="number" value={v.peso_kg} onChange={(e) => updateVolume(v.id, "peso_kg", e.target.value)} /></Field>
+            <div key={v.id} className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[repeat(5,minmax(0,1fr))_2rem]">
+              <div className="min-w-0"><Field label="Qtd"><Input min="1" type="number" value={v.quantidade} onChange={(e) => updateVolume(v.id, "quantidade", e.target.value)} /></Field></div>
+              <div className="min-w-0"><Field label="C (cm)"><Input min="0" type="number" value={v.comprimento_cm} onChange={(e) => updateVolume(v.id, "comprimento_cm", e.target.value)} /></Field></div>
+              <div className="min-w-0"><Field label="L (cm)"><Input min="0" type="number" value={v.largura_cm} onChange={(e) => updateVolume(v.id, "largura_cm", e.target.value)} /></Field></div>
+              <div className="min-w-0"><Field label="A (cm)"><Input min="0" type="number" value={v.altura_cm} onChange={(e) => updateVolume(v.id, "altura_cm", e.target.value)} /></Field></div>
+              <div className="col-span-2 min-w-0 sm:col-span-1"><Field label="Peso unit. (kg)"><Input min="0" type="number" value={v.peso_kg} onChange={(e) => updateVolume(v.id, "peso_kg", e.target.value)} /></Field></div>
               <button
                 onClick={() => setVolumes((all) => all.filter((x) => x.id !== v.id))}
                 disabled={volumes.length === 1}
-                className="h-9 flex items-center justify-center rounded text-state-error disabled:opacity-30"
+                aria-label="Remover volume"
+                className="h-9 w-8 flex items-center justify-center justify-self-end rounded text-state-error disabled:opacity-30"
               >
                 <Trash2 size={14} />
               </button>

@@ -6,16 +6,17 @@ import { Brand } from "../../components/Brand";
 import { useAuth } from "../../hooks/useAuth";
 
 export function Login() {
-  const { isAuthenticated, login, isLoggingIn, loginError } = useAuth();
+  const { isAuthenticated, isCheckingAuth, login, isLoggingIn, loginError } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@fretesystem.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (!isCheckingAuth && isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await login({ email, password });
+    await login({ email, password, otp: otp || undefined });
     navigate("/dashboard");
   }
 
@@ -28,6 +29,9 @@ export function Login() {
         </Field>
         <Field label="Senha">
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </Field>
+        <Field label="Código 2FA (se habilitado)">
+          <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} />
         </Field>
         {loginError && <p className="text-xs text-state-error">{loginError.message}</p>}
         <button

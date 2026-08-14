@@ -1,19 +1,9 @@
 import axios, { type AxiosError } from "axios";
 
-import { useAuthStore } from "../stores/authStore";
-
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1",
   timeout: 20_000,
-});
-
-// Interceptor de autenticação: injeta o token JWT em toda requisição.
-apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 // Interceptor de erros: 401 remove a sessão e redireciona para login;
@@ -22,8 +12,6 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ detail?: string; error?: { code: string; message: string } }>) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = "/login";
       return Promise.reject(error);
     }
 

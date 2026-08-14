@@ -24,7 +24,7 @@ export function Badge({
 
 export function Field({ label, children }: PropsWithChildren<{ label: string }>) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs font-medium text-text-secondary">{label}</span>
       {children}
     </label>
@@ -35,7 +35,7 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-9 rounded px-3 text-sm outline-none bg-surface2 border border-border text-text-primary focus:ring-1 focus:ring-state-info ${props.className || ""}`}
+      className={`h-9 w-full min-w-0 rounded px-3 text-sm outline-none bg-surface2 border border-border text-text-primary focus:ring-1 focus:ring-state-info ${props.className || ""}`}
     />
   );
 }

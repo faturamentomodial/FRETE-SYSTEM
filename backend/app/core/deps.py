@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,14 +8,17 @@ from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.models import Role, User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    bearer_token: str | None = Depends(oauth2_scheme),
+    access_token: str | None = Cookie(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    user_id = decode_access_token(token)
+    payload = decode_access_token(bearer_token or access_token or "")
+    user_id = payload.get("sub") if payload else None
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido ou expirado.")
 
@@ -27,6 +30,9 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário não encontrado.")
     if not user.ativa:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário desativado.")
+    if int(payload.get("sv", -1)) != int(user.session_version):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão revogada.")
+    request.state.authenticated_user_id = user.id
     return user
 
 

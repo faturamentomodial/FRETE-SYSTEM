@@ -6,4 +6,10 @@ export const authService = {
     const { data } = await apiClient.post<TokenResponse>("/auth/login", payload);
     return data;
   },
+  async me() {
+    return (await apiClient.get("/auth/me")).data;
+  },
+  async logout() {
+    await apiClient.post("/auth/logout");
+  },
 };

@@ -75,8 +75,8 @@ class NotificacaoSettings(BaseModel):
     @classmethod
     def validar_webhook(cls, valor: str) -> str:
         limpo = valor.strip()
-        if limpo and not limpo.lower().startswith(("https://", "http://")):
-            raise ValueError("Webhook deve usar http:// ou https://")
+        if limpo and not limpo.lower().startswith("https://"):
+            raise ValueError("Webhook deve usar HTTPS")
         return limpo
 
 
@@ -95,16 +95,15 @@ class RoleOut(BaseModel):
 class UserCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=255)
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=12, max_length=128)
     role_ids: list[str] = Field(min_length=1)
 
 
 class UserUpdate(BaseModel):
     nome: str | None = Field(None, min_length=2, max_length=255)
     email: EmailStr | None = None
-    password: str | None = Field(None, min_length=8, max_length=128)
+    password: str | None = Field(None, min_length=12, max_length=128)
     role_ids: list[str] | None = None
-    two_factor_enabled: bool | None = None
 
 
 class UserStatusUpdate(BaseModel):

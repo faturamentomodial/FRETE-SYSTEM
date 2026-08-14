@@ -1,23 +1,27 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { authService } from "../services/authService";
-import { useAuthStore } from "../stores/authStore";
 import type { LoginRequest } from "../types/auth";
 
 export function useAuth() {
-  const { token, logout } = useAuthStore();
-  const setToken = useAuthStore((s) => s.setToken);
+  const queryClient = useQueryClient();
+  const me = useQuery({ queryKey: ["auth", "me"], queryFn: authService.me, retry: false });
 
   const loginMutation = useMutation({
     mutationFn: (payload: LoginRequest) => authService.login(payload),
-    onSuccess: (data) => setToken(data.access_token),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+  });
+  const logoutMutation = useMutation({
+    mutationFn: authService.logout,
+    onSettled: () => queryClient.setQueryData(["auth", "me"], null),
   });
 
   return {
-    isAuthenticated: Boolean(token),
+    isAuthenticated: Boolean(me.data),
+    isCheckingAuth: me.isLoading,
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error as Error | null,
-    logout,
+    logout: () => logoutMutation.mutate(),
   };
 }

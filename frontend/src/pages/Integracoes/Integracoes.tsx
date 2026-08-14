@@ -16,6 +16,7 @@ import {
 } from "../../hooks/useTransportadoras";
 import type { MetodoCalculo, TipoIntegracao, Transportadora, TransportadoraInput } from "../../types/transportadora";
 import { ConfiguracaoApiForm } from "./ConfiguracaoApiForm";
+import { SankhyaMapeamentos } from "./SankhyaMapeamentos";
 
 const METODOS: { valor: MetodoCalculo; label: string }[] = [
   { valor: "tabela_propria", label: "Tabela própria" },
@@ -278,6 +279,7 @@ export function Integracoes() {
           </Card>
         ))}
       </div>
+      {transportadoras.data && <SankhyaMapeamentos transportadoras={transportadoras.data} />}
     </div>
   );
 }

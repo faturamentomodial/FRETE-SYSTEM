@@ -1,5 +1,5 @@
 import { apiClient } from "../api/client";
-import type { ConfiguracaoApi, ConfiguracaoApiInput, ConsultaCnpj, Transportadora, TransportadoraInput } from "../types/transportadora";
+import type { ConfiguracaoApi, ConfiguracaoApiInput, ConsultaCnpj, MapeamentoSankhya, MapeamentoSankhyaInput, Transportadora, TransportadoraInput } from "../types/transportadora";
 
 export const transportadoraService = {
   async listar(): Promise<Transportadora[]> {
@@ -37,5 +37,11 @@ export const transportadoraService = {
   async salvarConfiguracaoApi(id: string, payload: ConfiguracaoApiInput): Promise<ConfiguracaoApi> {
     const { data } = await apiClient.put<ConfiguracaoApi>(`/transportadoras/${id}/configuracao-api`, payload);
     return data;
+  },
+  async listarMapeamentosSankhya(): Promise<MapeamentoSankhya[]> {
+    return (await apiClient.get<MapeamentoSankhya[]>("/integrations/sankhya/mapeamentos")).data;
+  },
+  async salvarMapeamentoSankhya(payload: MapeamentoSankhyaInput): Promise<MapeamentoSankhya> {
+    return (await apiClient.put<MapeamentoSankhya>(`/integrations/sankhya/mapeamentos/${payload.transportadora_id}`, payload)).data;
   },
 };

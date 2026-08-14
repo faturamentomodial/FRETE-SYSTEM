@@ -1,36 +1,105 @@
-from datetime import datetime
+from collections import defaultdict, deque
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_current_user
-from app.core.security import create_access_token, verify_password
+from app.core.config import get_settings
+from app.core.security import create_access_token, generate_totp_secret, verify_password, verify_totp
 from app.db.session import get_db
 from app.models.models import Role, SystemSetting, User
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import LoginRequest, TokenResponse, TotpCodeRequest, TotpSetupResponse
 from app.schemas.configuracoes import CurrentUserOut, RoleOut
+from app.services.credenciais import criptografar, descriptografar
 
 router = APIRouter()
+_tentativas: dict[str, deque[datetime]] = defaultdict(deque)
+_JANELA = timedelta(minutes=15)
+_MAX_TENTATIVAS = 5
+
+
+def _chave_login(request: Request, email: str) -> str:
+    ip = request.client.host if request.client else "desconhecido"
+    return f"{ip}|{email.strip().lower()}"
+
+
+def _verificar_limite(chave: str) -> None:
+    agora = datetime.utcnow()
+    fila = _tentativas[chave]
+    while fila and agora - fila[0] > _JANELA:
+        fila.popleft()
+    if len(fila) >= _MAX_TENTATIVAS:
+        raise HTTPException(status_code=429, detail="Muitas tentativas. Aguarde 15 minutos.", headers={"Retry-After": "900"})
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(payload: LoginRequest, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    chave = _chave_login(request, payload.email)
+    _verificar_limite(chave)
     result = await db.execute(select(User).where(User.email == payload.email).options(selectinload(User.roles).selectinload(Role.permissions)))
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(payload.password, user.password_hash):
+        _tentativas[chave].append(datetime.utcnow())
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas.")
     if not user.ativa:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuário desativado.")
 
-    user.last_login_at = datetime.utcnow()
-    await db.commit()
     sessao = await db.scalar(select(SystemSetting).where(SystemSetting.categoria == "seguranca", SystemSetting.chave == "sessao"))
     expiracao = int((sessao.valor if sessao else {}).get("expiracao_token_minutos", 60))
-    token = create_access_token(subject=user.id, expires_minutes=expiracao)
-    return TokenResponse(access_token=token)
+    if user.two_factor_enabled:
+        if not user.two_factor_secret_encrypted or not payload.otp or not verify_totp(descriptografar(user.two_factor_secret_encrypted), payload.otp):
+            _tentativas[chave].append(datetime.utcnow())
+            raise HTTPException(status_code=401, detail="Código de autenticação inválido ou ausente")
+    user.last_login_at = datetime.utcnow()
+    await db.commit()
+    _tentativas.pop(chave, None)
+    token = create_access_token(subject=user.id, expires_minutes=expiracao, session_version=user.session_version)
+    response.set_cookie(
+        "access_token", token, max_age=expiracao * 60, httponly=True,
+        secure=get_settings().COOKIE_SECURE, samesite="strict", path="/",
+    )
+    return TokenResponse()
+
+
+@router.post("/auth/logout", status_code=204)
+async def logout(response: Response, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    user.session_version += 1
+    await db.commit()
+    response.delete_cookie("access_token", path="/", httponly=True, samesite="strict")
+
+
+@router.post("/auth/2fa/setup", response_model=TotpSetupResponse)
+async def setup_2fa(db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    secret = generate_totp_secret()
+    user.two_factor_secret_encrypted = criptografar(secret)
+    user.two_factor_enabled = False
+    await db.commit()
+    issuer = "FreteWay"
+    uri = f"otpauth://totp/{issuer}:{user.email}?secret={secret}&issuer={issuer}&digits=6&period=30"
+    return TotpSetupResponse(secret=secret, otpauth_uri=uri)
+
+
+@router.post("/auth/2fa/confirm", status_code=204)
+async def confirm_2fa(payload: TotpCodeRequest, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    if not user.two_factor_secret_encrypted or not verify_totp(descriptografar(user.two_factor_secret_encrypted), payload.code):
+        raise HTTPException(status_code=422, detail="Código de autenticação inválido")
+    user.two_factor_enabled = True
+    user.session_version += 1
+    await db.commit()
+
+
+@router.delete("/auth/2fa", status_code=204)
+async def disable_2fa(payload: TotpCodeRequest, db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)):
+    if not user.two_factor_enabled or not user.two_factor_secret_encrypted or not verify_totp(descriptografar(user.two_factor_secret_encrypted), payload.code):
+        raise HTTPException(status_code=422, detail="Código de autenticação inválido")
+    user.two_factor_enabled = False
+    user.two_factor_secret_encrypted = None
+    user.session_version += 1
+    await db.commit()
 
 
 @router.get("/auth/me", response_model=CurrentUserOut)

@@ -3,7 +3,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import require_permission
 from app.db.session import get_db
 from app.models.models import Transportadora, TransportadoraConfiguracaoApi
 from app.schemas.transportadora import (
@@ -60,7 +60,7 @@ async def _validar_unicidade(
 @router.get("/transportadoras", response_model=list[TransportadoraOut])
 async def listar_transportadoras(
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.view")),
 ):
     result = await db.execute(
         select(Transportadora).where(Transportadora.deleted_at.is_(None)).order_by(Transportadora.nome)
@@ -71,7 +71,7 @@ async def listar_transportadoras(
 @router.get("/transportadoras/consulta-cnpj/{cnpj}", response_model=ConsultaCnpjOut)
 async def consultar_dados_cnpj(
     cnpj: str,
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.view")),
 ):
     """Consulta dados públicos; não cria nem altera uma transportadora."""
     normalizado = somente_digitos(cnpj)
@@ -84,7 +84,7 @@ async def consultar_dados_cnpj(
 async def obter_transportadora(
     transportadora_id: str,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.view")),
 ):
     return await _obter_ou_404(db, transportadora_id)
 
@@ -93,7 +93,7 @@ async def obter_transportadora(
 async def criar_transportadora(
     dados: TransportadoraCreate,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.manage")),
 ):
     conflitos_excluidos = list((await db.execute(
         select(Transportadora).where(
@@ -141,7 +141,7 @@ async def atualizar_transportadora(
     transportadora_id: str,
     dados: TransportadoraUpdate,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.manage")),
 ):
     transportadora = await _obter_ou_404(db, transportadora_id)
     alteracoes = dados.model_dump(exclude_unset=True, exclude={"api_key", "api_base_url"})
@@ -191,7 +191,7 @@ async def alterar_status_transportadora(
     transportadora_id: str,
     dados: TransportadoraStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.manage")),
 ):
     transportadora = await _obter_ou_404(db, transportadora_id)
     transportadora.ativa = dados.ativa
@@ -204,7 +204,7 @@ async def alterar_status_transportadora(
 async def excluir_transportadora(
     transportadora_id: str,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.manage")),
 ):
     """Exclui definitivamente cadastro, vínculos, tabelas e resultados."""
     transportadora = await _obter_ou_404(db, transportadora_id)
@@ -235,7 +235,7 @@ def _configuracao_out(configuracao: TransportadoraConfiguracaoApi) -> Configurac
 async def obter_configuracao_api(
     transportadora_id: str,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.view")),
 ):
     await _obter_ou_404(db, transportadora_id)
     configuracao = await db.scalar(select(TransportadoraConfiguracaoApi).where(
@@ -251,7 +251,7 @@ async def salvar_configuracao_api(
     transportadora_id: str,
     dados: ConfiguracaoApiUpdate,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("integrations.manage")),
 ):
     transportadora = await _obter_ou_404(db, transportadora_id)
     if transportadora.tipo_integracao != "api":
@@ -283,7 +283,7 @@ async def atualizar_credencial(
     transportadora_id: str,
     dados: CredencialUpdate,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("integrations.manage")),
 ):
     transportadora = await _obter_ou_404(db, transportadora_id)
     configuracao = await db.scalar(select(TransportadoraConfiguracaoApi).where(
@@ -303,7 +303,7 @@ async def atualizar_credencial(
 async def obter_status_integracao(
     transportadora_id: str,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(require_permission("transportadoras.view")),
 ):
     transportadora = await _obter_ou_404(db, transportadora_id)
     pronta = transportadora.metodo_calculo != "api" or transportadora.status_integracao == "ativo"

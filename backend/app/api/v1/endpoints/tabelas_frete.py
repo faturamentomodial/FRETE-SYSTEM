@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, require_permission
 from app.core.config import get_settings
 from app.models.models import DocumentoFrete, TabelaFrete, Transportadora, User
 from app.schemas.tabela_frete import (
@@ -50,7 +50,7 @@ router = APIRouter(prefix="/tabelas-frete", tags=["Tabelas de Frete"])
 async def criar_tabela_frete(
     dados: TabelaFreteCreate,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Cria uma nova tabela de frete.
 
@@ -94,7 +94,7 @@ async def listar_tabelas_frete(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.view")),
 ):
     """Lista tabelas de frete com filtros e paginação."""
     stmt = select(TabelaFrete)
@@ -148,7 +148,7 @@ async def listar_tabelas_frete(
 async def obter_tabela_frete(
     tabela_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.view")),
 ):
     """Obtém detalhes completos de uma tabela de frete."""
     stmt = select(TabelaFrete).where(TabelaFrete.id == tabela_id)
@@ -195,7 +195,7 @@ async def atualizar_tabela_frete(
     tabela_id: str,
     dados: TabelaFreteUpdate,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Atualiza uma tabela de frete.
 
@@ -228,7 +228,7 @@ async def atualizar_tabela_frete(
 async def deletar_tabela_frete(
     tabela_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Deleta uma tabela de frete.
 
@@ -260,7 +260,7 @@ async def deletar_tabela_frete(
 async def obter_conteudo_documento(
     documento_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.view")),
 ):
     documento = await db.scalar(select(DocumentoFrete).where(DocumentoFrete.id == documento_id))
     if not documento:
@@ -277,7 +277,7 @@ async def upload_documento(
     tabela_id: str,
     arquivo: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Faz upload de documento para extração.
 
@@ -342,7 +342,7 @@ async def analisar_documento(
     tabela_id: str,
     documento_id: str = Query(...),
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Inicia análise de um documento com IA/OCR.
 
@@ -386,7 +386,7 @@ async def analisar_documento(
 async def obter_dados_revisao(
     tabela_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.view")),
 ):
     """Obtém dados estruturados para revisão humana.
 
@@ -423,7 +423,7 @@ async def atualizar_dados_revisao(
     tabela_id: str,
     revisao: TabelaFreteRevisaoAtualizar,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     tabela = await db.scalar(select(TabelaFrete).where(TabelaFrete.id == tabela_id))
     if not tabela:
@@ -449,7 +449,7 @@ async def aprovar_tabela_frete(
     tabela_id: str,
     dados: TabelaFreteAprovar,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Aprova uma tabela em status REVIEW.
 
@@ -494,7 +494,7 @@ async def confirmar_importacao(
     tabela_id: str,
     dados: ConfirmarImportacaoRequest,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Persiste somente os dados que o usuário revisou e confirmou."""
     tabela = await db.scalar(select(TabelaFrete).where(TabelaFrete.id == tabela_id))
@@ -528,7 +528,7 @@ async def confirmar_importacao(
 async def ativar_tabela_frete(
     tabela_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Ativa uma tabela aprovada para uso em cotações.
 
@@ -559,7 +559,7 @@ async def cancelar_tabela_frete(
     tabela_id: str,
     motivo: str = Query(..., max_length=500),
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Cancela uma tabela.
 
@@ -591,7 +591,7 @@ async def mudar_status_tabela(
     tabela_id: str,
     mudanca: TabelaFreteStatus,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.manage")),
 ):
     """Muda status da tabela manualmente."""
     stmt = select(TabelaFrete).where(TabelaFrete.id == tabela_id)
@@ -618,7 +618,7 @@ async def mudar_status_tabela(
 async def obter_historico(
     tabela_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.view")),
 ):
     """Obtém histórico completo de alterações de uma tabela."""
     # TODO: Implementar
@@ -629,7 +629,7 @@ async def obter_historico(
 async def listar_documentos(
     tabela_id: str,
     db: AsyncSession = Depends(get_db),
-    usuario: User = Depends(get_current_user),
+    usuario: User = Depends(require_permission("transportadoras.view")),
 ):
     """Lista documentos originais de uma tabela."""
     tabela = await db.scalar(select(TabelaFrete).where(TabelaFrete.id == tabela_id))

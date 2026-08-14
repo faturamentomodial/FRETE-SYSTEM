@@ -70,6 +70,9 @@ async def upload_logo(request: Request, arquivo: UploadFile = File(...), db: Asy
     await arquivo.close()
     if not conteudo or len(conteudo) > settings.EMPRESA_LOGO_MAX_BYTES:
         raise HTTPException(status_code=422, detail="Logo vazio ou maior que 2 MB")
+    assinaturas = {".png": b"\x89PNG\r\n\x1a\n", ".jpg": b"\xff\xd8\xff", ".jpeg": b"\xff\xd8\xff", ".webp": b"RIFF"}
+    if not conteudo.startswith(assinaturas[extensao]) or (extensao == ".webp" and conteudo[8:12] != b"WEBP"):
+        raise HTTPException(status_code=422, detail="O conteúdo real da logo é inválido")
     raiz = Path(settings.EMPRESA_LOGO_STORAGE_DIR).resolve()
     raiz.mkdir(parents=True, exist_ok=True)
     destino = raiz / f"{uuid4().hex}{extensao}"
@@ -200,12 +203,13 @@ async def atualizar_usuario(user_id: str, dados: UserUpdate, request: Request, d
         await _validar_ultimo_admin(db, alvo, novos_roles=roles)
     if dados.email and await db.scalar(select(User).where(func.lower(User.email) == dados.email.lower(), User.id != user_id)):
         raise HTTPException(status_code=409, detail="E-mail já cadastrado")
-    for campo in ("nome", "email", "two_factor_enabled"):
+    for campo in ("nome", "email"):
         valor = getattr(dados, campo)
         if valor is not None:
             setattr(alvo, campo, valor.strip() if isinstance(valor, str) else valor)
     if dados.password:
         alvo.password_hash = hash_password(dados.password)
+        alvo.session_version += 1
     if roles is not None:
         alvo.roles = roles
     novo = {"nome": alvo.nome, "email": alvo.email, "roles": [r.nome for r in alvo.roles], "two_factor_enabled": alvo.two_factor_enabled, "senha_alterada": bool(dados.password)}
